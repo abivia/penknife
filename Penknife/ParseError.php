@@ -1,6 +1,6 @@
 <?php
 
-namespace Abivia\PenKnife;
+namespace Abivia\Penknife;
 
 class ParseError extends \Exception
 {

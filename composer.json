@@ -22,7 +22,7 @@
   },
   "autoload": {
     "psr-4": {
-      "Abivia\\PenKnife\\": "src/"
+      "Abivia\\Penknife\\": "Penknife/"
     }
   },
   "config": {

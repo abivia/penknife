@@ -1,10 +1,10 @@
-# Abivia\PenKnife
+# Abivia\Penknife
 
-## Pen knife: a small blade
+## Penknife: a small blade
 
-PenKnife is a tiny but powerful template engine implemented in PHP 8.4.
+Penknife is a tiny but powerful template engine implemented in PHP 8.4.
 
-PenKnife supports:
+Penknife supports:
 * Variables
 * Conditionals
 * Nested loops
@@ -15,7 +15,7 @@ The `format()` method takes template text and a variable resolution callback as 
 Example:
 
 ```php
-$engine = new \Abivia\PenKnife\PenKnife();
+$engine = new \Abivia\Penknife\Penknife();
 echo $engine->format(
    '{{first}} {{last}}', function (string $expression) {
        return match ($expression) {
@@ -35,7 +35,7 @@ if the resolution function returns a null value for `somevar`.
 
 ## Conditionals
 
-PenKnife supports if-then-else statements.
+Penknife supports if-then-else statements.
 
 ```
 {{?variable}}
@@ -60,7 +60,7 @@ An associative array with a numerical bias will return the numerical position.
 
 ```php
 $template = "looping:\n{{@list}}index {{loop.#}} line {{loop1.#.1}} value {{loop}}\n{{/@list}}";
-$engine = new \Abivia\PenKnife\PenKnife();
+$engine = new \Abivia\Penknife\Penknife();
 echo $engine->format($template, function ($expr) {
     return $expr === 'list' ? ['first' => 'one', 'second' => 'two'] : null;
 });
@@ -78,12 +78,12 @@ index second line 2 value two
 Loops can be nested:
 
 ```php
-$testObj = new PenKnife();
+$testObj = new Penknife();
 $template = "looping:"
     . "\n{{@list}}index {{loop.#}} line {{loop1.#.1}} value {{loop.name}}"
     . "\n{{@loop.data}}{{loop2}} {{/@loop.data}}"
     . "\n{{/@list}}";
-$engine = new \Abivia\PenKnife\PenKnife();
+$engine = new \Abivia\Penknife\Penknife();
 echo $engine->format($template, function ($expr) {
     if ($expr === 'list') {
         return [
@@ -121,7 +121,7 @@ it is possible to give a loop a name:
 
 ## Alternate Syntax
 
-All tokens in PenKnife can be modified via the `setToken()` and `setTokens()` methods.
+All tokens in Penknife can be modified via the `setToken()` and `setTokens()` methods.
 The default tokens are:
 
 
@@ -137,9 +137,8 @@ The default tokens are:
 |open|{{|Opens a command|
 |scope|.|Scope operator|
 
-
 ```php
-$engine = new \Abivia\PenKnife\PenKnife();
+$engine = new \Abivia\Penknife\Penknife();
 // Note the spaces in the if and else tokens
 $engine->setTokens([
     'open' => '<**<', 

@@ -1,10 +1,10 @@
 <?php
 
-namespace Abivia\PenKnife;
+namespace Abivia\Penknife;
 
 use RuntimeException;
 
-class PenKnife
+class Penknife
 {
     /**
      * @var array Data on (nested) loops

@@ -1,14 +1,14 @@
 <?php
 
-namespace Abivia\PenKnife;
+namespace Abivia\Penknife;
 
 use PHPUnit\Framework\TestCase;
 
-class PenKnifeTest extends TestCase
+class PenknifeTest extends TestCase
 {
     public function testTrivial()
     {
-        $testObj = new PenKnife();
+        $testObj = new Penknife();
         $template = "This is just text\non two lines";
         $result = $testObj->format($template, function ($expr) {return $expr;});
         $this->assertEquals($template, $result);
@@ -16,7 +16,7 @@ class PenKnifeTest extends TestCase
 
     public function testSimpleVariable()
     {
-        $testObj = new PenKnife();
+        $testObj = new Penknife();
         $template = "This is text with a {{var}}\non the first of two lines";
         $result = $testObj->format($template, function ($expr) {
             return $expr === 'var' ? 'replacement' : "??$expr??";
@@ -27,7 +27,7 @@ class PenKnifeTest extends TestCase
 
     public function testSimpleVariableAtStart()
     {
-        $testObj = new PenKnife();
+        $testObj = new Penknife();
         $template = "{{var}} at the start";
         $result = $testObj->format($template, function ($expr) {
             return $expr === 'var' ? 'replacement' : "??$expr??";
@@ -38,7 +38,7 @@ class PenKnifeTest extends TestCase
 
     public function testSimpleVariableAtEnd()
     {
-        $testObj = new PenKnife();
+        $testObj = new Penknife();
         $template = "at the end {{var}}";
         $result = $testObj->format($template, function ($expr) {
             return $expr === 'var' ? 'replacement' : "??$expr??";
@@ -49,7 +49,7 @@ class PenKnifeTest extends TestCase
 
     public function testSimpleVariable2()
     {
-        $testObj = new PenKnife();
+        $testObj = new Penknife();
         $template = "This is text with a {{var}}\non two {{ var }} lines";
         $result = $testObj->format($template, function ($expr) {
             return $expr === 'var' ? 'replacement' : "??$expr??";
@@ -60,7 +60,7 @@ class PenKnifeTest extends TestCase
 
     public function testNotClosed()
     {
-        $testObj = new PenKnife();
+        $testObj = new Penknife();
         $template = "error {{right <-there.";
         $this->expectException(ParseError::class);
         $testObj->format($template, function ($expr) {
@@ -70,7 +70,7 @@ class PenKnifeTest extends TestCase
 
     public function testOverClosed()
     {
-        $testObj = new PenKnife();
+        $testObj = new Penknife();
         $template = "this is {{good}} but error }} <-there.";
         $this->expectException(ParseError::class);
         $testObj->format($template, function ($expr) {
@@ -80,7 +80,7 @@ class PenKnifeTest extends TestCase
 
     public function testConditional()
     {
-        $testObj = new PenKnife();
+        $testObj = new Penknife();
         $template = "conditional:{{?test}}TRUE{{/?test}}.";
         $result = $testObj->format($template, function ($expr) {
             return $expr === 'test';
@@ -96,7 +96,7 @@ class PenKnifeTest extends TestCase
 
     public function testConditionalElse()
     {
-        $testObj = new PenKnife();
+        $testObj = new Penknife();
         $template = "conditional:{{?test}}TRUE{{!?test}}FALSE{{/?test}}.";
         $result = $testObj->format($template, function ($expr) {
             return $expr === 'test';
@@ -112,7 +112,7 @@ class PenKnifeTest extends TestCase
 
     public function testConditionalError()
     {
-        $testObj = new PenKnife();
+        $testObj = new Penknife();
         $template = "conditional:{{?test}}TRUE.";
         $this->expectException(ParseError::class);
         $testObj->format($template, function ($expr) {
@@ -122,7 +122,7 @@ class PenKnifeTest extends TestCase
 
     public function testLoopDefault()
     {
-        $testObj = new PenKnife();
+        $testObj = new Penknife();
         $template = "looping:\n{{@list}}index {{loop.#}} line {{loop1.#.1}} value {{loop}}\n{{/@list}}";
         $result = $testObj->format($template, function ($expr) {
             return $expr === 'list' ? ['one', 'two'] : null;
@@ -133,7 +133,7 @@ class PenKnifeTest extends TestCase
 
     public function testLoopNamed()
     {
-        $testObj = new PenKnife();
+        $testObj = new Penknife();
         $template = "looping:\n{{@list,bob}}index {{bob.#}} line {{bob.#.1}} value {{bob}}\n{{/@list}}";
         $result = $testObj->format($template, function ($expr) {
             return $expr === 'list' ? ['one', 'two'] : null;
@@ -144,7 +144,7 @@ class PenKnifeTest extends TestCase
 
     public function testLoopAssociative()
     {
-        $testObj = new PenKnife();
+        $testObj = new Penknife();
         $template = "looping:\n{{@list}}index {{loop.#}} line {{loop1.#.1}} value {{loop}}\n{{/@list}}";
         $result = $testObj->format($template, function ($expr) {
             return $expr === 'list' ? ['first' => 'one', 'second' => 'two'] : null;
@@ -155,7 +155,7 @@ class PenKnifeTest extends TestCase
 
     public function testLoopArray()
     {
-        $testObj = new PenKnife();
+        $testObj = new Penknife();
         $template = "looping:"
             . "\n{{@list}}index {{loop.#}} line {{loop1.#.1}} value {{loop.0}},{{loop.1}}"
             . "\n{{/@list}}";
@@ -168,7 +168,7 @@ class PenKnifeTest extends TestCase
 
     public function testLoopArrayAssociative()
     {
-        $testObj = new PenKnife();
+        $testObj = new Penknife();
         $template = "looping:"
             . "\n{{@list}}index {{loop.#}} line {{loop1.#.1}} value {{loop.x}},{{loop.y}}"
             . "\n{{/@list}}";
@@ -181,7 +181,7 @@ class PenKnifeTest extends TestCase
 
     public function testLoopNested()
     {
-        $testObj = new PenKnife();
+        $testObj = new Penknife();
         $template = "looping:"
             . "\n{{@list}}index {{loop.#}} line {{loop1.#.1}} value {{loop.name}}"
             . "\n{{@loop.data,nesty}}{{nesty}} {{/@loop.data}}"
@@ -212,14 +212,14 @@ class PenKnifeTest extends TestCase
 
     public function testSetTokenBad()
     {
-        $testObj = new PenKnife();
+        $testObj = new Penknife();
         $this->expectException(SetupError::class);
         $testObj->setToken('fubar', 1);
     }
 
     public function testSetTokens()
     {
-        $testObj = new PenKnife();
+        $testObj = new Penknife();
         $testObj->setTokens([
             'open' => '<**<',
             'close' => '>**>',
