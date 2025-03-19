@@ -74,7 +74,7 @@ class PenKnife
             } elseif (str_starts_with($segment->text, $this->tokens['if'])) {
                 $endMark = $this->findEnd($segments, $segment, $instruction, 'if');
                 $elseMark = $this->findElse($segments, $segment, $instruction);
-                $subject = ($this->resolver)(substr($segment->text, strlen($this->tokens['if'])));
+                $subject = $this->lookup(substr($segment->text, strlen($this->tokens['if'])));
                 if (!empty($subject)) {
                     $nested = array_slice($segments, $next, ($elseMark ?? $endMark) - $next);
                     $result .= $this->execute($nested);
@@ -91,7 +91,7 @@ class PenKnife
     }
 
     /**
-     * Find an else commmand in a list of template segments that matches an if token.
+     * Find an else command in a list of template segments that matches an if token.
      * @param array $segments The token list to scan.
      * @param Token $segment The conditional token to match.
      * @param int $from The position where the end token is found.
