@@ -40,7 +40,7 @@ Penknife supports if-then-else statements.
 ```
 {{?variable}}
 true part
-{{!variable}}
+{{!?variable}}
 Optional false part
 {{/?variable}}
 ```
