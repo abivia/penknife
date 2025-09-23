@@ -6,6 +6,11 @@ class Token
 {
     const int TEXT = 0;
     const int COMMAND = 1;
+    const int IF = 2;
+    const int LOOP = 3;
+
+    public array $falsePart = [];
+    public array $truePart = [];
 
     public function __construct(
         protected(set) int $type,

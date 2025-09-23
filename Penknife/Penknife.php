@@ -6,6 +6,7 @@ use RuntimeException;
 
 class Penknife
 {
+    protected bool $compress = false;
     /**
      * @var array Data on (nested) loops
      */
@@ -30,6 +31,12 @@ class Penknife
         'scope' => '.',
     ];
 
+    public function compress(bool $compress): self
+    {
+        $this->compress = $compress;
+        return $this;
+    }
+
     /**
      * @param array $segments
      * @return string
@@ -49,42 +56,59 @@ class Penknife
             if (str_starts_with($segment->text, $this->tokens['end'])) {
                 continue;
             }
-            $next = $instruction + 1;
             if (str_starts_with($segment->text, $this->tokens['loop'])) {
                 // Looping construct
                 $args = explode(',', substr($segment->text, strlen($this->tokens['loop'])));
-                $target = $segment->newText($this->tokens['loop'] . $args[0]);
-                $endMark = $this->findEnd($segments, $target, $instruction, 'loop');
                 $level = count($this->loopStack);
                 $depth = $level + 1;
                 $loopVar = trim($args[1] ?? "loop$depth");
                 $list = $this->lookup($args[0]);
-                if (!is_array($list)) {
-                    throw new RuntimeException("Loop variable $args[0] is not an array.");
+                if (is_array($list) && count($list)) {
+                    $this->loopStack[] = ['name' => $loopVar, 'list' => $list, 'row' => 0];
+                    $row = 0;
+                    foreach (array_keys($this->loopStack[$level]['list']) as $this->loopStack[$level]['index']) {
+                        $this->loopStack[$level]['row'] = $row++;
+                        $result .= $this->execute($segment->truePart);
+                    }
+                    array_pop($this->loopStack);
+                } else {
+                    $result .= $this->execute($segment->falsePart);
                 }
-                $this->loopStack[] = ['name' => $loopVar, 'list' => $list, 'row' => 0];
-                $loopBody = array_slice($segments, $next, $endMark - $next);
-                $row = 0;
-                foreach (array_keys($this->loopStack[$level]['list']) as $this->loopStack[$level]['index']) {
-                    $this->loopStack[$level]['row'] = $row++;
-                    $result .= $this->execute($loopBody);
-                }
-                array_pop($this->loopStack);
-                $instruction = $endMark;
             } elseif (str_starts_with($segment->text, $this->tokens['if'])) {
-                $endMark = $this->findEnd($segments, $segment, $instruction, 'if');
-                $elseMark = $this->findElse($segments, $segment, $instruction);
                 $subject = $this->lookup(substr($segment->text, strlen($this->tokens['if'])));
                 if (!empty($subject)) {
-                    $nested = array_slice($segments, $next, ($elseMark ?? $endMark) - $next);
-                    $result .= $this->execute($nested);
-                } elseif ($elseMark !== null) {
-                    $nested = array_slice($segments, $instruction + $elseMark, $elseMark - $next);
-                    $result .= $this->execute($nested);
+                    $result .= $this->execute($segment->truePart);
+                } else {
+                    $result .= $this->execute($segment->falsePart);
                 }
-                $instruction = $endMark;
             } else {
                 $result .= $this->lookup($segment->text);
+            }
+        }
+        return $result;
+    }
+
+    private function find(
+        string $tokenType,
+        array $segments,
+        Token $segment,
+        int $from
+    ): ?int
+    {
+        $result = null;
+        $nest = 0;
+        $find = $this->tokens[$tokenType] . $segment->text;
+        for ($forward = $from + 1; $forward < count($segments); ++$forward) {
+            if ($segments[$forward]->type === Token::COMMAND) {
+                if ($segments[$forward]->text === $find) {
+                    if ($nest === 0) {
+                        $result = $forward;
+                        break;
+                    }
+                    --$nest;
+                } elseif ($segments[$forward]->text === $segment->text) {
+                    ++$nest;
+                }
             }
         }
         return $result;
@@ -99,15 +123,7 @@ class Penknife
      */
     private function findElse(array $segments, Token $segment, int $from): ?int
     {
-        $endMark = null;
-        $find = $this->tokens['else'] . $segment->text;
-        for ($forward = $from + 1; $forward < count($segments); ++$forward) {
-            if ($segments[$forward]->type === Token::COMMAND && $segments[$forward]->text === $find) {
-                $endMark = $forward;
-                break;
-            }
-        }
-        return $endMark;
+        return $this->find('else', $segments, $segment, $from);
     }
 
     /**
@@ -121,14 +137,7 @@ class Penknife
      */
     private function findEnd(array $segments, Token $segment, int $from, string $construct): int
     {
-        $endMark = null;
-        $find = $this->tokens['end'] . $segment->text;
-        for ($forward = $from + 1; $forward < count($segments); ++$forward) {
-            if ($segments[$forward]->type === Token::COMMAND && $segments[$forward]->text === $find) {
-                $endMark = $forward;
-                break;
-            }
-        }
+        $endMark = $this->find('end', $segments, $segment, $from);
         if ($endMark === null) {
             throw new ParseError(
                 "Unterminated $construct: $segment->text starting on or after line $segment->line"
@@ -149,8 +158,9 @@ class Penknife
     {
         $this->segment($template);
         $this->resolver = $resolver;
+        $parsed = $this->parse($this->segments);
         $this->loopStack = [];
-        return $this->execute($this->segments);
+        return $this->execute($parsed);
     }
 
     private function lookup(string $expression)
@@ -171,7 +181,7 @@ class Penknife
                 if ($parts[1] === $this->tokens['index']) {
                     $index = $loopInfo['index'];
                     if ($parts[2] ?? false) {
-                        $index = $loopInfo['row'] + (int) $parts[2];
+                        $index = $loopInfo['row'] + (int)$parts[2];
                     }
                     return $index;
                 }
@@ -179,6 +189,53 @@ class Penknife
             }
         }
         return ($this->resolver)($expression);
+    }
+
+    private function parse(array $segments): array
+    {
+        $parsed = [];
+        for ($instruction = 0; $instruction < count($segments); ++$instruction) {
+            /** @var Token $segment */
+            $segment = $segments[$instruction];
+            if ($segment->type === Token::TEXT) {
+                $parsed[] = $segment;
+                continue;
+            }
+            // Now dealing with a command.
+            if (str_starts_with($segment->text, $this->tokens['end'])) {
+                // this should be an error
+                continue;
+            }
+            $next = $instruction + 1;
+            $construct = '';
+            $target = null;
+            if (str_starts_with($segment->text, $this->tokens['loop'])) {
+                // Looping construct
+                $construct = 'loop';
+                $args = explode(',', substr($segment->text, strlen($this->tokens['loop'])));
+                $target = $segment->newText($this->tokens['loop'] . $args[0]);
+            } elseif (str_starts_with($segment->text, $this->tokens['if'])) {
+                $construct = 'if';
+                $target = $segment;
+            }
+            if ($construct !== '') {
+                $endMark = $this->findEnd($segments, $target, $instruction, $construct);
+                $elseMark = $this->findElse($segments, $target, $instruction);
+                $trueMark = $elseMark ?? $endMark;
+                $segment->truePart = $this->parse(
+                    array_slice($segments, $next, $trueMark - $next)
+                );
+                //array_pop($segment->truePart);
+                if ($elseMark !== null) {
+                    $segment->falsePart = $this->parse(
+                        array_slice($segments, $elseMark + 1, $endMark - $elseMark - 1)
+                    );
+                }
+                $instruction = $endMark;
+            }
+            $parsed[] = $segment;
+        }
+        return $parsed;
     }
 
     /**
@@ -197,17 +254,24 @@ class Penknife
             $parts = explode($this->tokens['close'], $marker);
             switch (count($parts)) {
                 case 1:
-                    $this->segments[] = new Token(Token::TEXT, $marker, $line);
+                    $text = $marker;
                     if (!$first) {
                         throw new ParseError("Unmatched closing token on or after line $line");
                     }
                     break;
                 case 2:
                     $this->segments[] = new Token(Token::COMMAND, trim($parts[0]), $line);
-                    $this->segments[] = new Token(Token::TEXT, $parts[1], $line);
+                    $marker = $parts[1];
+                    $text = $parts[1];
                     break;
                 default:
                     throw new ParseError("Unexpected closing token on or after line $line");
+            }
+            if ($this->compress) {
+                $text = trim($text);
+            }
+            if ($text !== '') {
+                $this->segments[] = new Token(Token::TEXT, $marker, $line);
             }
             $line += substr_count($marker, "\n");
             $first = false;

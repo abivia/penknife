@@ -166,6 +166,19 @@ class PenknifeTest extends TestCase
         $this->assertEquals($expect, $result);
     }
 
+    public function testLoopArrayEmpty()
+    {
+        $testObj = new Penknife();
+        $template = "looping:"
+            . "\n{{@list}}index {{loop.#}} line {{loop1.#.1}} value {{loop.0}},{{loop.1}}"
+            . "\n{{!@list}}Empty\n{{/@list}}";
+        $result = $testObj->format($template, function ($expr) {
+            return $expr === 'list' ? [] : null;
+        });
+        $expect = "looping:\nEmpty\n";
+        $this->assertEquals($expect, $result);
+    }
+
     public function testLoopArrayAssociative()
     {
         $testObj = new Penknife();
@@ -238,6 +251,66 @@ class PenknifeTest extends TestCase
         });
         $expect = "conditional:FALSE.";
         $this->assertEquals($expect, $result);
+    }
+
+    public function testComplex1()
+    {
+        $map = [
+            'alias' => 'link-alias',
+            'analyticsUrl' => '#alias',
+            'clickRows' => [],
+            'dailyStats' => false,
+        ];
+
+        $testObj = new Penknife();
+        $html = $testObj->format(
+            file_get_contents(__DIR__ . '/../../complexTemplate.html'),
+            function ($attr) use ($map) {
+                return $map[$attr] ?? "\{\{$attr??\}\}";
+            }
+        );
+        $this->assertStringContainsString('No daily stats.', $html);
+        $this->assertStringContainsString('No clicks.', $html);
+    }
+
+    public function testComplex2()
+    {
+        $map = [
+            'alias' => 'link-alias',
+            'analyticsUrl' => '#alias',
+            'clickRows' => [],
+            'dailyStats' => false,
+            'paginated' => true,
+        ];
+
+        $testObj = new Penknife();
+        $this->expectException(ParseError::class);
+        $html = $testObj->format(
+            file_get_contents(__DIR__ . '/../../openNestedConditional.html'),
+            function ($attr) use ($map) {
+                return $map[$attr] ?? "\{\{$attr??\}\}";
+            }
+        );
+    }
+
+    public function testComplex3()
+    {
+        $map = [
+            'alias' => 'link-alias',
+            'analyticsUrl' => '#alias',
+            'clickRows' => [],
+            'dailyStats' => false,
+            'paginated' => true,
+        ];
+
+        $testObj = new Penknife()->compress(false);
+        $html = $testObj->format(
+            file_get_contents(__DIR__ . '/../../identicalNestedConditionals.html'),
+            function ($attr) use ($map) {
+                return $map[$attr] ?? "\{\{$attr??\}\}";
+            }
+        );
+        $this->assertStringContainsString('No clicks.', $html);
     }
 
 }

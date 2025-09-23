@@ -1,0 +1,27 @@
+{{?dailyStats}}
+    {{@dailyStats}}
+        {{loop.click_date}}
+    {{/@dailyStats}}
+{{!?dailyStats}}
+    No daily stats.
+{{/?dailyStats}}
+{{?viewDate}}
+    {{?clickRows}}
+        {{viewDate}}
+        table head
+        {{@clickRows}}
+            {{loop.clicked_at}}
+        {{/@clickRows}}
+        {{?paginated}}
+            {{?prevUrl}}
+                Previous
+            {{/?prevUrl}}
+            Page N
+            {{?nextUrl}}
+                Next
+            {{/?nextUrl}}
+        {{/?paginated}}
+    {{!?clickRows}}
+        No clicks.
+    {{/?clickRows}}
+{{/?viewDate}}

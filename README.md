@@ -2,7 +2,7 @@
 
 ## Penknife: a small blade
 
-Penknife is a tiny but powerful template engine implemented in PHP 8.4.
+Penknife is a tiny but powerful template engine implemented in PHP 8.4. Change log below.
 
 Penknife supports:
 * Variables
@@ -119,6 +119,19 @@ it is possible to give a loop a name:
 {{@loop.data,dataLoop}}{{dataLoop.element}}{{/@loop.data}}
 ```
 
+### Empty loops
+
+You can use !@ before the end of a loop to handle empty loops
+
+```
+{{@list}}
+    {{loop.lastName}}, {{loop.firstName}}"
+{{!@list}}
+    Empty!
+{{/@list}}
+
+```
+
 ## Alternate Syntax
 
 All tokens in Penknife can be modified via the `setToken()` and `setTokens()` methods.
@@ -152,3 +165,14 @@ $engine->setTokens([
 $template = "conditional:<**<if test>**>TRUE<**<else if test>**>FALSE<**<~if test>**>."
 
 ```
+
+# Changelog
+
+## 1.1.0 2025-09-22
+
+* Added handling for empty loops.
+* Overhauled template parsing to fix an obscure bug.
+* Handle case where nested conditionals test the same expression. This was breaking the old parser.
+* Fixed a documentation error.
+
+## 1.0.0 Initial release
