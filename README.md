@@ -168,6 +168,10 @@ $template = "conditional:<**<if test>**>TRUE<**<else if test>**>FALSE<**<~if tes
 
 # Changelog
 
+### 1.1.2 2025-09-23
+
+* Pull version out of composer, let git manage versions through tags.
+
 ### 1.1.1 2025-09-23
 
 * Handle looping on an array of objects as well as an array of arrays.
