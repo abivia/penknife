@@ -163,31 +163,54 @@ class Penknife
         return $this->execute($parsed);
     }
 
+    /**
+     * Get the value of an expression.
+     *
+     * @param string $expression
+     * @return int|mixed|string
+     */
     private function lookup(string $expression)
     {
+        // break out additional arguments
         $args = explode($this->tokens['args'], $expression);
+        // Expand the sub-parts of the target value
         $parts = explode($this->tokens['scope'], $args[0]);
+
+        // Get the default value, use an empty string if none is provided.
         $default = trim($args[1] ?? '');
+
+        // If this is a loop variable with no index, add the index.
         if ($parts[0] === 'loop') {
             $parts[0] .= '1';
         }
+
+        // Check for variables in a loop construct
         foreach ($this->loopStack as $loopId => $loop) {
             if ($parts[0] === $loop['name']) {
+                // We have a loop match, pull the current list.
                 $loopInfo = $this->loopStack[$loopId];
                 if (count($parts) === 1) {
-                    // We expect that the loop array contains scalars
+                    // We expect that the loop array contains scalars.
                     return $loopInfo['list'][$loopInfo['index']];
                 }
+                // Check for a reference to the loop index.
                 if ($parts[1] === $this->tokens['index']) {
                     $index = $loopInfo['index'];
+                    // If a bias is provided, add it in.
                     if ($parts[2] ?? false) {
                         $index = $loopInfo['row'] + (int)$parts[2];
                     }
                     return $index;
                 }
-                return $loopInfo['list'][$loopInfo['index']][$parts[1]] ?? $default;
+                if (is_array($loopInfo['list'][$loopInfo['index']])) {
+                    return $loopInfo['list'][$loopInfo['index']][$parts[1]] ?? $default;
+                } else {
+                    // Assume this is an object
+                    return $loopInfo['list'][$loopInfo['index']]->{$parts[1]} ?? $default;
+                }
             }
         }
+        // Pass the expression to the resolver callback.
         return ($this->resolver)($expression);
     }
 

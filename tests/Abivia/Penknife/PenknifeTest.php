@@ -192,6 +192,21 @@ class PenknifeTest extends TestCase
         $this->assertEquals($expect, $result);
     }
 
+    public function testLoopArrayAssociativeObject()
+    {
+        $testObj = new Penknife();
+        $template = "looping:"
+            . "\n{{@list}}index {{loop.#}} line {{loop1.#.1}} value {{loop.x}},{{loop.y}}"
+            . "\n{{/@list}}";
+        $result = $testObj->format($template, function ($expr) {
+            return $expr === 'list'
+                ? [ (object)['x' => 0, 'y' => 0], (object)['x' => 1, 'y' => 1]]
+                : null;
+        });
+        $expect = "looping:\nindex 0 line 1 value 0,0\nindex 1 line 2 value 1,1\n";
+        $this->assertEquals($expect, $result);
+    }
+
     public function testLoopNested()
     {
         $testObj = new Penknife();

@@ -168,6 +168,10 @@ $template = "conditional:<**<if test>**>TRUE<**<else if test>**>FALSE<**<~if tes
 
 # Changelog
 
+### 1.1.1 2025-09-23
+
+* Handle looping on an array of objects as well as an array of arrays.
+
 ## 1.1.0 2025-09-22
 
 * Added handling for empty loops.
