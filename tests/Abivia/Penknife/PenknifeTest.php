@@ -284,6 +284,8 @@ class PenknifeTest extends TestCase
                 return $map[$attr] ?? "\{\{$attr??\}\}";
             }
         );
+        $this->assertStringContainsString('start', $html);
+        $this->assertStringContainsString('finish', $html);
         $this->assertStringContainsString('No daily stats.', $html);
         $this->assertStringContainsString('No clicks.', $html);
 

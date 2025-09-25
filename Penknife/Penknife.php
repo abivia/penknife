@@ -381,7 +381,7 @@ class Penknife
                     throw new ParseError("Can't open $path for inclusion.");
                 }
                 $inject = $this->segment(file_get_contents($path));
-                array_splice($segments, $instruction + 1, null, $inject);
+                array_splice($segments, $instruction + 1, 0, $inject);
                 break;
             default:
                 ($this->resolver)($segment->text, self::RESOLVE_EXPRESSION);
