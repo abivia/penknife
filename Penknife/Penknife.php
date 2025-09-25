@@ -6,6 +6,9 @@ use RuntimeException;
 
 class Penknife
 {
+    public const int RESOLVE_DIRECTIVE = 1;
+    public const int RESOLVE_EXPRESSION = 2;
+
     protected bool $compress = false;
     /**
      * @var array Data on (nested) loops
@@ -29,6 +32,7 @@ class Penknife
         'loop' => '@',
         'open' => '{{',
         'scope' => '.',
+        'system' => ':'
     ];
 
     public function compress(bool $compress): self
@@ -156,7 +160,7 @@ class Penknife
      */
     public function format(string $template, callable $resolver): string
     {
-        $this->segment($template);
+        $this->segments = $this->segment($template);
         $this->resolver = $resolver;
         $parsed = $this->parse($this->segments);
         $this->loopStack = [];
@@ -211,7 +215,7 @@ class Penknife
             }
         }
         // Pass the expression to the resolver callback.
-        return ($this->resolver)($expression);
+        return ($this->resolver)($expression, self::RESOLVE_EXPRESSION);
     }
 
     private function parse(array $segments): array
@@ -232,7 +236,11 @@ class Penknife
             $next = $instruction + 1;
             $construct = '';
             $target = null;
-            if (str_starts_with($segment->text, $this->tokens['loop'])) {
+            if (str_starts_with($segment->text, $this->tokens['system'])) {
+                // System command
+                $this->system($segments, $instruction);
+                continue;
+            } elseif (str_starts_with($segment->text, $this->tokens['loop'])) {
                 // Looping construct
                 $construct = 'loop';
                 $args = explode(',', substr($segment->text, strlen($this->tokens['loop'])));
@@ -264,13 +272,13 @@ class Penknife
     /**
      * Segment the template into a list of plaintext and commands.
      * @param string $template
-     * @return void
+     * @return array
      * @throws ParseError
      */
-    private function segment(string $template): void
+    private function segment(string $template): array
     {
         $markers = explode($this->tokens['open'], $template);
-        $this->segments = [];
+        $segments = [];
         $first = true;
         $line = 1;
         foreach ($markers as $marker) {
@@ -283,7 +291,7 @@ class Penknife
                     }
                     break;
                 case 2:
-                    $this->segments[] = new Token(Token::COMMAND, trim($parts[0]), $line);
+                    $segments[] = new Token(Token::COMMAND, trim($parts[0]), $line);
                     $marker = $parts[1];
                     $text = $parts[1];
                     break;
@@ -294,11 +302,12 @@ class Penknife
                 $text = trim($text);
             }
             if ($text !== '') {
-                $this->segments[] = new Token(Token::TEXT, $marker, $line);
+                $segments[] = new Token(Token::TEXT, $marker, $line);
             }
             $line += substr_count($marker, "\n");
             $first = false;
         }
+        return $segments;
     }
 
     /**
@@ -340,6 +349,35 @@ class Penknife
         }
 
         return $this;
+    }
+
+    private function system(array &$segments, int $instruction)
+    {
+        // Get the system operation
+        /** @var Token $segment */
+        $segment = $segments[$instruction];
+        $tokenLength = strlen($this->tokens['system']);
+        $operation = strtolower(substr($segment->text, $tokenLength));
+        $spaceAt = strpos($operation, ' ');
+        if ($spaceAt !== false) {
+            $operation = substr($operation, 0, $spaceAt);
+        }
+        switch ($operation) {
+            case 'include':
+                if ($spaceAt === false) {
+                    throw new ParseError('The include directive requires a file path.');
+                }
+                $path = trim(substr($segment->text, $tokenLength + $spaceAt));
+                if (!file_exists($path)) {
+                    throw new ParseError("Can't open $path for inclusion.");
+                }
+                $inject = $this->segment(file_get_contents($path));
+                array_splice($segments, $instruction + 1, null, $inject);
+                break;
+            default:
+                ($this->resolver)($segment->text, self::RESOLVE_EXPRESSION);
+                break;
+        }
     }
 
 }

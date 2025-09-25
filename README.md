@@ -17,7 +17,7 @@ Example:
 ```php
 $engine = new \Abivia\Penknife\Penknife();
 echo $engine->format(
-   '{{first}} {{last}}', function (string $expression) {
+   '{{first}} {{last}}', function (string $expression, $type) {
        return match ($expression) {
            'first' => 'Jane',
            'last' => 'Doe',
@@ -32,6 +32,12 @@ Jane Doe
 
 Variables can have a default value: `{{somevar, none}}` will emit "none"
 if the resolution function returns a null value for `somevar`.
+
+The `type` argument to the callback is either `PenKnife::RESOLVE_DIRECTIVE`
+or `PenKnife::RESOLVE_EXPRESSION`. 
+Directives allow extension of the command structure and are described below.
+
+
 
 ## Conditionals
 
@@ -132,6 +138,14 @@ You can use !@ before the end of a loop to handle empty loops
 
 ```
 
+### System directives
+
+System directives have the form {{:name [arguments]}}.
+There is currently one built-in directive, include.
+It has the form {{:include file_path}}, which will include the named file, if it exists.
+All other directives are passed to the resolver callback with the type set to RESOLVE_DIRECTIVE.
+New directives may be added in the future.
+
 ## Alternate Syntax
 
 All tokens in Penknife can be modified via the `setToken()` and `setTokens()` methods.
@@ -149,6 +163,7 @@ The default tokens are:
 |loop|@|Starts a loop|
 |open|{{|Opens a command|
 |scope|.|Scope operator|
+|system|:|System directive|
 
 ```php
 $engine = new \Abivia\Penknife\Penknife();
@@ -167,6 +182,10 @@ $template = "conditional:<**<if test>**>TRUE<**<else if test>**>FALSE<**<~if tes
 ```
 
 # Changelog
+
+## 1.2.0 2025-09-25
+
+* Added the directive mechanism and the include directive.
 
 ### 1.1.2 2025-09-23
 

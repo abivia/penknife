@@ -268,6 +268,27 @@ class PenknifeTest extends TestCase
         $this->assertEquals($expect, $result);
     }
 
+    public function testSystemInclude()
+    {
+        $map = [
+            'alias' => 'link-alias',
+            'analyticsUrl' => '#alias',
+            'clickRows' => [],
+            'dailyStats' => false,
+        ];
+
+        $testObj = new Penknife();
+        $html = $testObj->format(
+            "start\n{{:include " . __DIR__ . "/../../complexTemplate.html}}\nfinish.",
+            function ($attr) use ($map) {
+                return $map[$attr] ?? "\{\{$attr??\}\}";
+            }
+        );
+        $this->assertStringContainsString('No daily stats.', $html);
+        $this->assertStringContainsString('No clicks.', $html);
+
+    }
+
     public function testComplex1()
     {
         $map = [
