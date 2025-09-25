@@ -183,6 +183,10 @@ $template = "conditional:<**<if test>**>TRUE<**<else if test>**>FALSE<**<~if tes
 
 # Changelog
 
+### 1.2.1 2025-09-25
+
+* Added the includePath() method to set a base path for the include directive.
+
 ## 1.2.0 2025-09-25
 
 * Added the directive mechanism and the include directive.

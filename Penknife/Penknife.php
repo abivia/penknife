@@ -10,6 +10,8 @@ class Penknife
     public const int RESOLVE_EXPRESSION = 2;
 
     protected bool $compress = false;
+
+    protected string $includePath = '';
     /**
      * @var array Data on (nested) loops
      */
@@ -165,6 +167,13 @@ class Penknife
         $parsed = $this->parse($this->segments);
         $this->loopStack = [];
         return $this->execute($parsed);
+    }
+
+    public function includePath(string $path = ''): self
+    {
+        $this->includePath = $path;
+
+        return $this;
     }
 
     /**
@@ -367,7 +376,7 @@ class Penknife
                 if ($spaceAt === false) {
                     throw new ParseError('The include directive requires a file path.');
                 }
-                $path = trim(substr($segment->text, $tokenLength + $spaceAt));
+                $path = $this->includePath . trim(substr($segment->text, $tokenLength + $spaceAt));
                 if (!file_exists($path)) {
                     throw new ParseError("Can't open $path for inclusion.");
                 }

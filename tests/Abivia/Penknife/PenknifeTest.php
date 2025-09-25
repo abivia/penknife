@@ -277,9 +277,9 @@ class PenknifeTest extends TestCase
             'dailyStats' => false,
         ];
 
-        $testObj = new Penknife();
+        $testObj = new Penknife()->includePath(__DIR__);
         $html = $testObj->format(
-            "start\n{{:include " . __DIR__ . "/../../complexTemplate.html}}\nfinish.",
+            "start\n{{:include /../../complexTemplate.html}}\nfinish.",
             function ($attr) use ($map) {
                 return $map[$attr] ?? "\{\{$attr??\}\}";
             }
