@@ -360,6 +360,13 @@ class Penknife
         return $this;
     }
 
+    /**
+     * Process a system directive.
+     * @param array $segments
+     * @param int $instruction
+     * @return void
+     * @throws ParseError
+     */
     private function system(array &$segments, int $instruction)
     {
         // Get the system operation
@@ -369,17 +376,14 @@ class Penknife
         $operation = strtolower(substr($segment->text, $tokenLength));
         $spaceAt = strpos($operation, ' ');
         if ($spaceAt !== false) {
+            $args = trim(substr($operation, $spaceAt));
             $operation = substr($operation, 0, $spaceAt);
+        } else {
+            $args = '';
         }
         switch ($operation) {
             case 'include':
-                if ($spaceAt === false) {
-                    throw new ParseError('The include directive requires a file path.');
-                }
-                $path = $this->includePath . trim(substr($segment->text, $tokenLength + $spaceAt));
-                if (!file_exists($path)) {
-                    throw new ParseError("Can't open $path for inclusion.");
-                }
+                $path = $this->validateInclude($args, $operation);
                 $inject = $this->segment(file_get_contents($path));
                 array_splice($segments, $instruction + 1, 0, $inject);
                 break;
@@ -387,6 +391,26 @@ class Penknife
                 ($this->resolver)($segment->text, self::RESOLVE_EXPRESSION);
                 break;
         }
+    }
+
+    /**
+     * Check that an include file has been provided and that it exists.
+     *
+     * @param string $args
+     * @param string $operation
+     * @return string
+     * @throws ParseError
+     */
+    private function validateInclude(string $args, string $operation): string
+    {
+        if ($args === '') {
+            throw new ParseError("The $operation directive requires a file path.");
+        }
+        $path = $this->includePath . $args;
+        if (!file_exists($path)) {
+            throw new ParseError("Can't open $path for inclusion.");
+        }
+        return $path;
     }
 
 }

@@ -9,6 +9,8 @@ Penknife supports:
 * Conditionals
 * Nested loops
 * Custom tokens
+* Template includes
+* Custom directives
 
 The `format()` method takes template text and a variable resolution callback as arguments.
 
@@ -141,10 +143,14 @@ You can use !@ before the end of a loop to handle empty loops
 ### System directives
 
 System directives have the form {{:name [arguments]}}.
-There is currently one built-in directive, include.
-It has the form {{:include file_path}}, which will include the named file, if it exists.
+
+| Name    | Use                    | Description                                                                                                                           |
+|---------|------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
+| include | {{:include file_path}} | Includes the named template file, if it exists. Use the includePath() method to set a base directory for template includes.           |
+
 All other directives are passed to the resolver callback with the type set to RESOLVE_DIRECTIVE.
-New directives may be added in the future.
+New directives may be added in the future. 
+Penknife will never use an internal directive name starting with an underscore.
 
 ## Alternate Syntax
 
