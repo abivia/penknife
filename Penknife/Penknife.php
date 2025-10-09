@@ -12,6 +12,7 @@ class Penknife
     protected bool $compress = false;
 
     protected string $includePath = '';
+    protected string $injectionSite = '';
     /**
      * @var array Data on (nested) loops
      */
@@ -50,12 +51,26 @@ class Penknife
      */
     private function execute(array $segments): string
     {
-        $result = '';
+        $parent = null;
+        $this->injectionSite = '';
+        $result = ['' => ''];
         for ($instruction = 0; $instruction < count($segments); ++$instruction) {
             /** @var Token $segment */
             $segment = $segments[$instruction];
             if ($segment->type === Token::TEXT) {
-                $result .= $segment->text;
+                $result[$this->injectionSite] .= $segment->text;
+                continue;
+            } elseif ($segment->type === Token::EXPORT) {
+                $result = array_merge($result, $segment->args);
+                continue;
+            } elseif ($segment->type === Token::INJECT) {
+                $this->injectionSite = $segment->text;
+                $result[$this->injectionSite] ??= '';
+                continue;
+            } elseif ($segment->type === Token::PARENT) {
+                if ($parent === null) {
+                    $parent = $segment->text;
+                }
                 continue;
             }
             // Now dealing with a command.
@@ -74,24 +89,32 @@ class Penknife
                     $row = 0;
                     foreach (array_keys($this->loopStack[$level]['list']) as $this->loopStack[$level]['index']) {
                         $this->loopStack[$level]['row'] = $row++;
-                        $result .= $this->execute($segment->truePart);
+                        $result[$this->injectionSite] .= $this->execute($segment->truePart);
                     }
                     array_pop($this->loopStack);
                 } else {
-                    $result .= $this->execute($segment->falsePart);
+                    $result[$this->injectionSite] .= $this->execute($segment->falsePart);
                 }
             } elseif (str_starts_with($segment->text, $this->tokens['if'])) {
                 $subject = $this->lookup(substr($segment->text, strlen($this->tokens['if'])));
                 if (!empty($subject)) {
-                    $result .= $this->execute($segment->truePart);
+                    $result[$this->injectionSite] .= $this->execute($segment->truePart);
                 } else {
-                    $result .= $this->execute($segment->falsePart);
+                    $result[$this->injectionSite] .= $this->execute($segment->falsePart);
                 }
             } else {
-                $result .= $this->lookup($segment->text);
+                $result[$this->injectionSite] .= $this->lookup($segment->text);
             }
         }
-        return $result;
+        if ($parent !== null) {
+            return new self()->format(
+                file_get_contents($parent),
+                function (string $token, int $type) use ($result) {
+                    return $result[$token] ?? null;
+                }
+            );
+        }
+        return $result[''];
     }
 
     private function find(
@@ -376,19 +399,67 @@ class Penknife
         $operation = strtolower(substr($segment->text, $tokenLength));
         $spaceAt = strpos($operation, ' ');
         if ($spaceAt !== false) {
-            $args = trim(substr($operation, $spaceAt));
+            $args = trim(substr($segment->text, $spaceAt + 1));
             $operation = substr($operation, 0, $spaceAt);
         } else {
             $args = '';
         }
         switch ($operation) {
+            case 'export':
+                if ($args === '') {
+                    throw new ParseError("Export must specify at least one variable $segment->line");
+                }
+                $parts = explode(' ', preg_replace('!\s+!', ' ', $args));
+                // Get a list of exports
+                $symbols = [];
+                foreach ($parts as $part) {
+                    $map = explode(':', $part, 2);
+                    if (count($map) === 1) {
+                        $symbols[$part] = ($this->resolver)($part, self::RESOLVE_EXPRESSION);
+                    } else {
+                        $symbols[$map[0]] = ($this->resolver)($map[1], self::RESOLVE_EXPRESSION);
+                    }
+                }
+                array_splice(
+                    $segments,
+                    $instruction + 1,
+                    0,
+                    [new Token(Token::EXPORT, '', $segment->line, $symbols)]
+                );
+                break;
+
             case 'include':
                 $path = $this->validateInclude($args, $operation);
                 $inject = $this->segment(file_get_contents($path));
                 array_splice($segments, $instruction + 1, 0, $inject);
                 break;
+
+            case 'inject':
+                $parts = explode(' ', preg_replace('!\s+!', ' ', $args));
+                $site = array_shift($parts);
+                if ($site === null) {
+                    throw new ParseError("Inject must specify a slot name at line $segment->line");
+                }
+                array_splice(
+                    $segments,
+                    $instruction + 1,
+                    0,
+                    [new Token(Token::INJECT, $site, $segment->line)]
+                );
+                break;
+
+            case 'parent':
+                $path = $this->validateInclude($args, $operation);
+                array_splice(
+                    $segments,
+                    $instruction + 1,
+                    0,
+                    [new Token(Token::PARENT, $path, $segment->line)]
+                );
+                break;
+
             default:
-                ($this->resolver)($segment->text, self::RESOLVE_EXPRESSION);
+                ($this->resolver)($segment->text, self::RESOLVE_DIRECTIVE);
                 break;
         }
     }

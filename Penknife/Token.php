@@ -6,8 +6,11 @@ class Token
 {
     const int TEXT = 0;
     const int COMMAND = 1;
-    const int IF = 2;
-    const int LOOP = 3;
+    const int EXPORT = 2;
+    const int IF = 3;
+    const int INJECT = 4;
+    const int LOOP = 5;
+    const int PARENT = 6;
 
     public array $falsePart = [];
     public array $truePart = [];
@@ -15,7 +18,8 @@ class Token
     public function __construct(
         protected(set) int $type,
         protected(set) string $text,
-        protected(set) int $line = 0
+        protected(set) int $line = 0,
+        protected(set) array $args = []
     )
     {}
 

@@ -10,6 +10,7 @@ Penknife supports:
 * Nested loops
 * Custom tokens
 * Template includes
+* Layouts/slots (pushing data and variables into a parent template)
 * Custom directives
 
 The `format()` method takes template text and a variable resolution callback as arguments.
@@ -140,17 +141,72 @@ You can use !@ before the end of a loop to handle empty loops
 
 ```
 
-### System directives
+## System directives
 
-System directives have the form {{:name [arguments]}}.
+System directives have the form {{:name \[arguments]}}.
 
-| Name    | Use                    | Description                                                                                                                           |
-|---------|------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
-| include | {{:include file_path}} | Includes the named template file, if it exists. Use the includePath() method to set a base directory for template includes.           |
+| Name    | Use                      | Description                                         |
+|---------|--------------------------|-----------------------------------------------------|
+| export  | {{:export export_list}}  | Exports one or more variables to a parent template. |
+| include | {{:include file_path}}   | Includes the named template file, if it exists.     |
+| inject  | {{:inject section_name}} | Specifies the start of a parent injection section.  |
+| parent  | {{:parent file_path}}    | Names a parent template file.                       |
 
 All other directives are passed to the resolver callback with the type set to RESOLVE_DIRECTIVE.
 New directives may be added in the future. 
 Penknife will never use an internal directive name starting with an underscore.
+
+### Export directive
+
+The value of variables in the current environment can be exported to the parent by listing them,
+separated by spaces.
+It is possible to rename a variable by prefixing it with the exported name and a colon.
+For example {{:export banner:title dated}} will put the value of "title" into the
+"banner" variable, the value of "dated" into the "dated" variable,
+and the text following the inject directive into the "header" variable.
+These will then be passed to the parent template.
+
+### Include directive
+
+This will read the included file into the template. 
+Use the includePath() method to set a base directory for template includes.
+
+### Inject directive
+
+Defines the beginning of text that will be stored into the named section and passed to the parent template.
+The output will be passed as the named variable to the parent template.
+For example, {{:inject header}} will pass the variable "header" into the parent template.
+If no parent is specified then the contents of the inject block are not output anywhere. 
+
+### Parent directive
+
+If a parent template is specified, then the values of any slots defined by an inject directive,
+along with any exported variables, will be passed to that template.
+Only one parent can be specified. 
+Parent directives after the first one are ignored.
+
+Example of the inject/parent mechanism:
+
+Template
+```
+{{:parent some-file}}
+{{:inject one}}
+This is the first part.
+{{:inject two}}
+This is the second part.
+```
+Parent template stored in some-file
+```
+{{two}}
+and then there was
+{{one}}
+ ```
+Resulting output:
+```
+This is the second part.
+and then there was
+This is the first part.
+```
 
 ## Alternate Syntax
 
@@ -188,6 +244,10 @@ $template = "conditional:<**<if test>**>TRUE<**<else if test>**>FALSE<**<~if tes
 ```
 
 # Changelog
+
+### 1.3.0 2025-10-08
+
+* Added the export, inject and parent directives.
 
 ### 1.2.2 2025-09-26
 
